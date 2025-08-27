@@ -3,515 +3,308 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Préstamos Avanzada - Caja de Ahorro Tupak Rantina</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Inter -->
+    <title>AudioTranscriptor AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- MathJax for formula rendering -->
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
-    <!-- Custom Styles and Tailwind Config -->
     <style>
+        :root {
+            --primary-color: #6d5dfc;
+            --background-color: #f0f2f5;
+            --surface-color: rgba(255, 255, 255, 0.7);
+            --text-color: #0f172a;
+            --subtle-text-color: #64748b;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --shadow-color: rgba(109, 93, 252, 0.2);
+            --error-color: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: 'Inter', sans-serif;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            background: var(--background-color);
+            background-image: linear-gradient(135deg, #a855f7, #3b82f6);
+            color: var(--text-color);
         }
-        /* Ensure MathJax formula is visible on dark backgrounds */
-        .mathjax-formula {
-            color: white;
-            margin-top: 0.5rem;
-            font-size: 0.8rem;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-            scrollbar-color: #e48410 #015cd0;
+
+        .app-container {
+            width: 90%; max-width: 500px; background: var(--surface-color);
+            backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 24px; border: 1px solid var(--border-color);
+            padding: 2.5rem; box-shadow: 0 8px 32px 0 var(--shadow-color); transition: all 0.3s ease;
         }
-        
-        /* Custom scrollbar for tables */
-        .scroll-container {
-            scrollbar-width: thin;
-            scrollbar-color: #e48410 #f1f5f9;
+
+        .view { display: none; }
+        .view.active { display: block; }
+
+        h1 { font-size: 2rem; font-weight: 700; text-align: center; margin-bottom: 0.5rem; }
+        .subtitle { text-align: center; margin-bottom: 2rem; color: var(--subtle-text-color); }
+        .form-group { margin-bottom: 1.25rem; }
+
+        input {
+            width: 100%; padding: 1rem; border: 1px solid #d1d5db; border-radius: 12px;
+            font-size: 1rem; background: #fff; transition: border-color 0.2s, box-shadow 0.2s;
         }
-        
-        .scroll-container::-webkit-scrollbar {
-            height: 6px;
-            width: 6px;
+        input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px var(--shadow-color); }
+
+        button {
+            width: 100%; padding: 1rem; color: white; border: none; border-radius: 12px;
+            cursor: pointer; font-size: 1rem; font-weight: 600; transition: all 0.3s;
+            background-image: linear-gradient(to right, var(--primary-color) 0%, #8678f9 51%, var(--primary-color) 100%);
+            background-size: 200% auto;
         }
-        
-        .scroll-container::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 10px;
+        button:hover { background-position: right center; }
+        button:disabled { cursor: not-allowed; opacity: 0.7; }
+
+        #recordButton {
+            margin-top: 1rem;
+            background-image: linear-gradient(to right, #10b981 0%, #34d399 51%, #10b981 100%);
         }
-        
-        .scroll-container::-webkit-scrollbar-thumb {
-            background: #e48410;
-            border-radius: 10px;
+        #recordButton.is-recording {
+            background-image: linear-gradient(to right, #ef4444 0%, #f87171 51%, #ef4444 100%);
         }
-        
-        .scroll-container::-webkit-scrollbar-thumb:hover {
-            background: #d97706;
+
+        #logoutButton { margin-top: 1rem; background-image: none; background-color: #e2e8f0; color: var(--subtle-text-color); }
+        #logoutButton:hover { background-color: #d1d5db; }
+
+        .message { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px; text-align: center; font-weight: 500; }
+        .message.error { background-color: #fee2e2; color: #991b1b; }
+
+        #drop-area {
+            border: 2px dashed #d1d5db; border-radius: 16px; padding: 2.5rem; text-align: center;
+            cursor: pointer; transition: border-color 0.3s, background-color 0.3s;
         }
+        #drop-area.highlight { border-color: var(--primary-color); background-color: rgba(255, 255, 255, 0.5); }
+        #drop-area .upload-icon { width: 48px; height: 48px; margin: 0 auto 1rem; color: var(--primary-color); }
+        #file-info { margin-top: 1rem; font-weight: 500; color: var(--subtle-text-color); }
+        #file-info.error { color: var(--error-color); }
+
+        #recording-status { display: none; margin-top: 1rem; font-weight: 500; color: var(--error-color); text-align: center; }
+
+        .animation-container { display: none; margin: 2rem 0; text-align: center; }
+        .waveform { display: flex; justify-content: center; align-items: center; height: 50px; }
+        .waveform .bar { width: 6px; height: 10px; margin: 0 4px; background-color: var(--primary-color); animation: wave 1.2s infinite ease-in-out; }
+        .waveform .bar:nth-child(2) { animation-delay: -1.1s; }
+        .waveform .bar:nth-child(3) { animation-delay: -1.0s; }
+        .waveform .bar:nth-child(4) { animation-delay: -0.9s; }
+        .waveform .bar:nth-child(5) { animation-delay: -0.8s; }
+        @keyframes wave { 0%, 40%, 100% { transform: scaleY(0.4); } 20% { transform: scaleY(1.0); } }
+        .animation-text { margin-top: 1rem; font-weight: 600; }
+
+        #result-wrapper { display: none; margin-top: 2rem; }
+        #result-container { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.5rem; position: relative; cursor: copy; transition: background-color 0.2s; }
+        #result-container:hover { background-color: #f1f5f9; }
+        #transcriptionResult { white-space: pre-wrap; word-wrap: break-word; line-height: 1.6; }
+        #durationInfo { margin-top: 1rem; text-align: right; font-size: 0.9rem; font-weight: 500; color: var(--subtle-text-color); }
+
+        .copy-feedback { position: absolute; top: 1rem; right: 1rem; background-color: var(--primary-color); color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500; opacity: 0; transition: opacity 0.3s, transform 0.3s; transform: translateY(-10px); }
+        .copy-feedback.show { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 600px) { .app-container { padding: 1.5rem; margin: 1rem; width: auto; } h1 { font-size: 1.75rem; } .subtitle { font-size: 0.9rem; } #drop-area { padding: 1.5rem; } }
     </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'brand-dark-blue': '#001749',
-                        'brand-orange': '#e48410',
-                        'brand-light-blue': '#3787c6',
-                        'brand-accent-blue': '#015cd0',
-                    }
-                }
-            }
-        }
-    </script>
 </head>
-<body class="bg-gray-100 antialiased">
+<body>
 
-    <div id="app" class="min-h-screen flex flex-col">
-        <!-- Header -->
-        <header class="bg-brand-dark-blue text-white py-4 px-6">
-            <div class="max-w-7xl mx-auto">
-                <h1 class="text-2xl font-bold">Calculadora de Préstamos Avanzada</h1>
-                <p class="text-gray-300 text-sm">Caja de Ahorro Tupak Rantina</p>
+    <div class="app-container">
+        <div id="loginView" class="view">
+            <h1>Bienvenido</h1>
+            <p class="subtitle">Inicia sesión para transcribir tus audios</p>
+            <form id="loginForm">
+                <div class="form-group"><input type="text" id="usuario" placeholder="Usuario" required></div>
+                <div class="form-group"><input type="password" id="password" placeholder="Contraseña" required></div>
+                <button type="submit">Ingresar</button>
+            </form>
+            <div id="loginMessage"></div>
+        </div>
+
+        <div id="transcriptionView" class="view">
+            <h1>Sube o Graba tu Audio</h1>
+            <p class="subtitle">Arrastra un archivo, graba o selecciona para transcribir</p>
+            <div id="drop-area">
+                <input type="file" id="fileElem" accept="audio/*,video/*" style="display:none">
+                <div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21 21H3" /></svg></div>
+                <p>Arrastra un archivo aquí o <strong>haz clic para seleccionar</strong></p>
+                <div id="file-info"></div>
             </div>
-        </header>
-
-        <!-- Main Content -->
-        <main class="flex-grow py-6 px-4 bg-gray-50">
-            <div class="max-w-7xl mx-auto">
-                
-                <!-- Calculator Section -->
-                <div class="bg-white rounded-lg shadow-xl overflow-hidden mb-8">
-                    <div class="lg:flex">
-                        <!-- Left Side: Information -->
-                        <div class="lg:w-1/3 p-6 bg-brand-accent-blue text-white">
-                            <h2 class="text-2xl font-bold mb-4">Calculadora de Créditos</h2>
-                            <p class="text-gray-200 mb-4 text-sm">
-                                Configure el tipo de financiamiento y calcule el monto total, tabla de amortización y costos.
-                            </p>
-                            
-                            <!-- Formula Display -->
-                            <div class="bg-white/20 p-3 rounded-lg mb-4">
-                                <p class="font-semibold text-xs mb-2">Fórmulas Aplicadas:</p>
-                                <div class="mathjax-formula text-xs">
-                                    $$ \text{Cuota} = \frac{P \times r \times (1+r)^n}{(1+r)^n - 1} $$
-                                </div>
-                                <div class="mathjax-formula text-xs">
-                                    $$ \text{Financ.} = \frac{\text{Neto}}{1 - \frac{\%Desc.}{100}} $$
-                                </div>
-                            </div>
-                            
-                            <div class="text-xs text-gray-200">
-                                <p><strong>P:</strong> Capital | <strong>r:</strong> Tasa mensual | <strong>n:</strong> Períodos</p>
-                            </div>
-                        </div>
-
-                        <!-- Right Side: Calculator Form -->
-                        <div class="lg:w-2/3 p-6">
-                            <div class="grid md:grid-cols-2 gap-6">
-                                
-                                <!-- Column 1: Basic Data -->
-                                <div class="space-y-4">
-                                    <h3 class="text-lg font-semibold text-brand-dark-blue border-b border-gray-200 pb-2">Datos Básicos</h3>
-                                    
-                                    <!-- Net Amount -->
-                                    <div>
-                                        <label for="netAmount" class="block text-sm font-medium text-gray-700">Monto Neto Requerido ($)</label>
-                                        <input type="number" id="netAmount" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-accent-blue focus:ring-brand-accent-blue" placeholder="2500.00" value="2500">
-                                    </div>
-
-                                    <!-- Annual Interest Rate -->
-                                    <div>
-                                        <label for="annualRate" class="block text-sm font-medium text-gray-700">Tasa Anual (%)</label>
-                                        <input type="number" id="annualRate" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-accent-blue focus:ring-brand-accent-blue" placeholder="26.00" value="26">
-                                    </div>
-
-                                    <!-- Term in months -->
-                                    <div>
-                                        <label for="termMonths" class="block text-sm font-medium text-gray-700">Plazo (meses)</label>
-                                        <input type="number" id="termMonths" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-accent-blue focus:ring-brand-accent-blue" placeholder="12" value="12">
-                                    </div>
-
-                                    <!-- SOLCA Percentage -->
-                                    <div>
-                                        <label for="solcaPercentage" class="block text-sm font-medium text-gray-700">SOLCA (%)</label>
-                                        <input type="number" id="solcaPercentage" step="0.001" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-accent-blue focus:ring-brand-accent-blue" placeholder="0.5" value="0.5">
-                                    </div>
-
-                                    <!-- Autoseguro Percentage -->
-                                    <div>
-                                        <label for="autoseguroPercentage" class="block text-sm font-medium text-gray-700">Autoseguro (%)</label>
-                                        <input type="number" id="autoseguroPercentage" step="0.001" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-accent-blue focus:ring-brand-accent-blue" placeholder="0.72" value="0.72">
-                                    </div>
-                                </div>
-
-                                <!-- Column 2: Patrimonial Contribution Options -->
-                                <div class="space-y-4">
-                                    <h3 class="text-lg font-semibold text-brand-dark-blue border-b border-gray-200 pb-2">Aporte Patrimonial</h3>
-                                    
-                                    <!-- Patrimonial Contribution Percentage -->
-                                    <div>
-                                        <label for="patrimonialPercentage" class="block text-sm font-medium text-gray-700">Porcentaje Aporte (%)</label>
-                                        <input type="number" id="patrimonialPercentage" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-accent-blue focus:ring-brand-accent-blue" placeholder="3.0" value="3">
-                                    </div>
-
-                                    <!-- Financing Option -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Financiamiento</label>
-                                        <div class="space-y-2">
-                                            <label class="flex items-center">
-                                                <input type="radio" name="financingType" value="discount" class="text-brand-accent-blue focus:ring-brand-accent-blue" checked>
-                                                <span class="ml-2 text-sm">Descontar del crédito</span>
-                                            </label>
-                                            <label class="flex items-center">
-                                                <input type="radio" name="financingType" value="finance" class="text-brand-accent-blue focus:ring-brand-accent-blue">
-                                                <span class="ml-2 text-sm">Financiar aporte</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <!-- Generate Button -->
-                                    <button id="generateBtn" class="w-full bg-brand-orange hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-md transition duration-200 mt-4">
-                                        Generar Cálculos
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Results Section -->
-                <div id="resultsSection" class="grid lg:grid-cols-2 gap-8" style="display: none;">
-                    
-                    <!-- Summary Card -->
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <h3 class="text-xl font-bold text-brand-dark-blue mb-4">Resumen del Crédito</h3>
-                        
-                        <div class="space-y-3">
-                            <div class="flex justify-between border-b border-gray-100 pb-2">
-                                <span class="text-gray-600">Monto Neto Solicitado:</span>
-                                <span id="summaryNetAmount" class="font-semibold">$0.00</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-2">
-                                <span class="text-gray-600">Aporte Patrimonial:</span>
-                                <span id="summaryPatrimonialAmount" class="font-semibold">$0.00</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-2">
-                                <span class="text-gray-600">Monto Total del Crédito:</span>
-                                <span id="summaryTotalCredit" class="font-semibold text-brand-orange text-lg">$0.00</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-2">
-                                <span class="text-gray-600">Desembolso Neto:</span>
-                                <span id="summaryNetDisbursement" class="font-semibold text-green-600 text-lg">$0.00</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-2">
-                                <span class="text-gray-600">Cuota Mensual Base:</span>
-                                <span id="summaryBasePayment" class="font-semibold">$0.00</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-2">
-                                <span class="text-gray-600">SOLCA:</span>
-                                <span id="summarySolcaAmount" class="font-semibold text-gray-600">$0.00</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-2">
-                                <span class="text-gray-600">Autoseguro:</span>
-                                <span id="summaryAutoseguroAmount" class="font-semibold text-gray-600">$0.00</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-2">
-                                <span class="text-gray-600">Cuota Total:</span>
-                                <span id="summaryMonthlyPayment" class="font-semibold text-blue-600 text-lg">$0.00</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Total a Pagar:</span>
-                                <span id="summaryTotalToPay" class="font-semibold">$0.00</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Additional Info Card -->
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <h3 class="text-xl font-bold text-brand-dark-blue mb-4">Información Adicional</h3>
-                        
-                        <div class="space-y-3">
-                            <div class="bg-blue-50 p-3 rounded-lg">
-                                <p class="text-sm text-blue-800">
-                                    <strong>Tipo de Financiamiento:</strong> 
-                                    <span id="financingTypeDisplay">Descuento del crédito</span>
-                                </p>
-                            </div>
-                            
-                            <div class="space-y-2">
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">Tasa Mensual:</span>
-                                    <span id="monthlyRateDisplay" class="font-medium">0.00%</span>
-                                </div>
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">Total SOLCA:</span>
-                                    <span id="totalSolcaDisplay" class="font-medium">$0.00</span>
-                                </div>
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">Total Autoseguro:</span>
-                                    <span id="totalAutoseguroDisplay" class="font-medium">$0.00</span>
-                                </div>
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">Total Intereses:</span>
-                                    <span id="totalInterestDisplay" class="font-medium">$0.00</span>
-                                </div>
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">Plazo:</span>
-                                    <span id="termDisplay" class="font-medium">0 meses</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Amortization Table -->
-                <div id="amortizationSection" class="mt-8 bg-white rounded-lg shadow-lg p-6" style="display: none;">
-                    <h3 class="text-xl font-bold text-brand-dark-blue mb-4">Tabla de Amortización</h3>
-                    
-                    <div class="overflow-x-auto scroll-container">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cuota</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo Inicial</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cuota Base</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interés</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capital</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SOLCA</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Autoseguro</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cuota Total</th>
-                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo Final</th>
-                                </tr>
-                            </thead>
-                            <tbody id="amortizationTableBody" class="bg-white divide-y divide-gray-200">
-                                <!-- Table rows will be generated by JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <button id="recordButton">Grabar Audio</button>
+            <div id="recording-status"></div>
+            <div class="animation-container" id="animationContainer">
+                <div class="waveform"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+                <div class="animation-text">Transcribiendo...</div>
             </div>
-        </main>
-
-        <!-- Footer -->
-        <footer class="bg-brand-dark-blue text-white py-4 px-6">
-            <div class="max-w-7xl mx-auto text-center">
-                <p class="text-sm text-gray-300">© 2025 Caja de Ahorro Tupak Rantina - Calculadora de Préstamos</p>
+            <div id="result-wrapper">
+                <div id="result-container" title="Haz clic para copiar"><div id="transcriptionResult"></div><div class="copy-feedback" id="copyFeedback">¡Copiado!</div></div>
+                <div id="durationInfo"></div>
             </div>
-        </footer>
+            <button id="logoutButton">Cerrar Sesión</button>
+        </div>
     </div>
 
     <script>
-        // --- DOM Element References ---
-        const netAmountInput = document.getElementById('netAmount');
-        const annualRateInput = document.getElementById('annualRate');
-        const termMonthsInput = document.getElementById('termMonths');
-        const patrimonialPercentageInput = document.getElementById('patrimonialPercentage');
-        const solcaPercentageInput = document.getElementById('solcaPercentage');
-        const autoseguroPercentageInput = document.getElementById('autoseguroPercentage');
-        const generateBtn = document.getElementById('generateBtn');
-        const resultsSection = document.getElementById('resultsSection');
-        const amortizationSection = document.getElementById('amortizationSection');
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginView = document.getElementById('loginView');
+            const transcriptionView = document.getElementById('transcriptionView');
+            const loginForm = document.getElementById('loginForm');
+            const loginMessage = document.getElementById('loginMessage');
+            const logoutButton = document.getElementById('logoutButton');
+            const recordButton = document.getElementById('recordButton');
+            const recordingStatus = document.getElementById('recording-status');
+            const dropArea = document.getElementById('drop-area');
+            const fileElem = document.getElementById('fileElem');
+            const fileInfo = document.getElementById('file-info');
+            const animationContainer = document.getElementById('animationContainer');
+            const resultWrapper = document.getElementById('result-wrapper');
+            const resultContainer = document.getElementById('result-container');
+            const transcriptionResult = document.getElementById('transcriptionResult');
+            const durationInfo = document.getElementById('durationInfo');
+            const copyFeedback = document.getElementById('copyFeedback');
 
-        // Summary elements
-        const summaryNetAmount = document.getElementById('summaryNetAmount');
-        const summaryPatrimonialAmount = document.getElementById('summaryPatrimonialAmount');
-        const summaryTotalCredit = document.getElementById('summaryTotalCredit');
-        const summaryNetDisbursement = document.getElementById('summaryNetDisbursement');
-        const summaryBasePayment = document.getElementById('summaryBasePayment');
-        const summarySolcaAmount = document.getElementById('summarySolcaAmount');
-        const summaryAutoseguroAmount = document.getElementById('summaryAutoseguroAmount');
-        const summaryMonthlyPayment = document.getElementById('summaryMonthlyPayment');
-        const summaryTotalToPay = document.getElementById('summaryTotalToPay');
-        const financingTypeDisplay = document.getElementById('financingTypeDisplay');
-        const monthlyRateDisplay = document.getElementById('monthlyRateDisplay');
-        const totalSolcaDisplay = document.getElementById('totalSolcaDisplay');
-        const totalAutoseguroDisplay = document.getElementById('totalAutoseguroDisplay');
-        const totalInterestDisplay = document.getElementById('totalInterestDisplay');
-        const termDisplay = document.getElementById('termDisplay');
-        const amortizationTableBody = document.getElementById('amortizationTableBody');
+            let mediaRecorder;
+            let audioChunks = [];
+            let mediaStream;
 
-        // --- Utility Functions ---
-        function formatCurrency(amount) {
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD'
-            }).format(amount);
-        }
+            const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
-        function formatPercentage(rate) {
-            return (rate * 100).toFixed(2) + '%';
-        }
+            const checkLoginState = () => {
+                if (localStorage.getItem('isLoggedIn') === 'true') {
+                    loginView.classList.remove('active');
+                    transcriptionView.classList.add('active');
+                } else {
+                    loginView.classList.add('active');
+                    transcriptionView.classList.remove('active');
+                }
+            };
 
-        // --- Main Calculation Function ---
-        function calculateLoan() {
-            // Get input values
-            const netAmount = parseFloat(netAmountInput.value) || 0;
-            const annualRate = parseFloat(annualRateInput.value) || 0;
-            const termMonths = parseInt(termMonthsInput.value) || 0;
-            const patrimonialPercentage = parseFloat(patrimonialPercentageInput.value) || 0;
-            const solcaPercentage = parseFloat(solcaPercentageInput.value) || 0;
-            const autoseguroPercentage = parseFloat(autoseguroPercentageInput.value) || 0;
-            
-            // Get financing type
-            const financingType = document.querySelector('input[name="financingType"]:checked').value;
+            loginForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const webhookUrl = 'https://lpwebhook.luispinta.com/webhook/3ff2b48f-eba9-45fe-8754-8553280f0506';
+                try {
+                    const response = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario: document.getElementById('usuario').value, password: document.getElementById('password').value }) });
+                    const result = await response.json();
+                    if (result.status === 'autorizado') {
+                        localStorage.setItem('isLoggedIn', 'true');
+                        checkLoginState();
+                    } else {
+                        loginMessage.className = 'message error';
+                        loginMessage.textContent = result.message || 'Credenciales incorrectas.';
+                    }
+                } catch (error) { loginMessage.className = 'message error'; loginMessage.textContent = 'Error de conexión.'; }
+            });
 
-            // Validate inputs
-            if (netAmount <= 0 || annualRate <= 0 || termMonths <= 0) {
-                alert('Por favor, ingrese valores válidos para todos los campos.');
-                return;
-            }
+            logoutButton.addEventListener('click', () => {
+                localStorage.removeItem('isLoggedIn');
+                fileInfo.textContent = '';
+                resultWrapper.style.display = 'none';
+                checkLoginState();
+            });
 
-            if (patrimonialPercentage < 0 || patrimonialPercentage >= 100) {
-                alert('El porcentaje del aporte patrimonial debe estar entre 0 y 99.99%');
-                return;
-            }
-
-            // Calculate monthly interest rate
-            const monthlyRate = annualRate / 100 / 12;
-
-            let totalCredit, netDisbursement, patrimonialAmount;
-
-            if (financingType === 'finance') {
-                // Option 2: Finance the patrimonial contribution
-                // Total credit = Net Amount / (1 - Patrimonial Percentage)
-                totalCredit = netAmount / (1 - patrimonialPercentage / 100);
-                patrimonialAmount = totalCredit * (patrimonialPercentage / 100);
-                netDisbursement = netAmount; // Client receives exactly what they asked for
-            } else {
-                // Option 1: Discount from credit
-                totalCredit = netAmount;
-                patrimonialAmount = totalCredit * (patrimonialPercentage / 100);
-                netDisbursement = totalCredit - patrimonialAmount;
-            }
-
-            // Calculate base monthly payment using the standard loan formula
-            // PMT = P * [r(1+r)^n] / [(1+r)^n - 1]
-            const baseMonthlyPayment = totalCredit * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / 
-                                      (Math.pow(1 + monthlyRate, termMonths) - 1);
-
-            // Calculate SOLCA and Autoseguro amounts (based on credit amount)
-            const monthlySolca = totalCredit * (solcaPercentage / 100) / termMonths;
-            const monthlyAutoseguro = totalCredit * (autoseguroPercentage / 100) / termMonths;
-
-            // Total monthly payment including SOLCA and Autoseguro
-            const totalMonthlyPayment = baseMonthlyPayment + monthlySolca + monthlyAutoseguro;
-
-            const baseTotalToPay = baseMonthlyPayment * termMonths;
-            const totalSolca = monthlySolca * termMonths;
-            const totalAutoseguro = monthlyAutoseguro * termMonths;
-            const grandTotalToPay = totalMonthlyPayment * termMonths;
-            const totalInterest = baseTotalToPay - totalCredit;
-
-            // Update summary display
-            summaryNetAmount.textContent = formatCurrency(netAmount);
-            summaryPatrimonialAmount.textContent = formatCurrency(patrimonialAmount);
-            summaryTotalCredit.textContent = formatCurrency(totalCredit);
-            summaryNetDisbursement.textContent = formatCurrency(netDisbursement);
-            summaryBasePayment.textContent = formatCurrency(baseMonthlyPayment);
-            summarySolcaAmount.textContent = formatCurrency(monthlySolca);
-            summaryAutoseguroAmount.textContent = formatCurrency(monthlyAutoseguro);
-            summaryMonthlyPayment.textContent = formatCurrency(totalMonthlyPayment);
-            summaryTotalToPay.textContent = formatCurrency(grandTotalToPay);
-
-            // Update additional info
-            financingTypeDisplay.textContent = financingType === 'finance' ? 
-                'Financiamiento del aporte' : 'Descuento del crédito';
-            monthlyRateDisplay.textContent = formatPercentage(monthlyRate);
-            totalSolcaDisplay.textContent = formatCurrency(totalSolca);
-            totalAutoseguroDisplay.textContent = formatCurrency(totalAutoseguro);
-            totalInterestDisplay.textContent = formatCurrency(totalInterest);
-            termDisplay.textContent = `${termMonths} meses`;
-
-            // Generate amortization table
-            generateAmortizationTable(totalCredit, monthlyRate, termMonths, baseMonthlyPayment, monthlySolca, monthlyAutoseguro);
-
-            // Show results sections
-            resultsSection.style.display = 'grid';
-            amortizationSection.style.display = 'block';
-
-            // Scroll to results
-            resultsSection.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // --- Amortization Table Generation ---
-        function generateAmortizationTable(principal, monthlyRate, termMonths, baseMonthlyPayment, monthlySolca, monthlyAutoseguro) {
-            let balance = principal;
-            let tableHTML = '';
-
-            for (let month = 1; month <= termMonths; month++) {
-                const interestPayment = balance * monthlyRate;
-                const principalPayment = baseMonthlyPayment - interestPayment;
-                const newBalance = balance - principalPayment;
-
-                // Handle final payment rounding
-                const finalPrincipalPayment = month === termMonths ? balance : principalPayment;
-                const finalBalance = month === termMonths ? 0 : newBalance;
-                const finalBasePayment = month === termMonths ? 
-                    interestPayment + finalPrincipalPayment : baseMonthlyPayment;
-
-                // Total payment including SOLCA and Autoseguro
-                const totalPayment = finalBasePayment + monthlySolca + monthlyAutoseguro;
-
-                tableHTML += `
-                    <tr class="${month % 2 === 0 ? 'bg-gray-50' : 'bg-white'}">
-                        <td class="px-2 py-2 text-sm text-gray-900">${month}</td>
-                        <td class="px-2 py-2 text-sm text-gray-900">${formatCurrency(balance)}</td>
-                        <td class="px-2 py-2 text-sm text-gray-700">${formatCurrency(finalBasePayment)}</td>
-                        <td class="px-2 py-2 text-sm text-red-600">${formatCurrency(interestPayment)}</td>
-                        <td class="px-2 py-2 text-sm text-green-600">${formatCurrency(finalPrincipalPayment)}</td>
-                        <td class="px-2 py-2 text-sm text-purple-600">${formatCurrency(monthlySolca)}</td>
-                        <td class="px-2 py-2 text-sm text-indigo-600">${formatCurrency(monthlyAutoseguro)}</td>
-                        <td class="px-2 py-2 text-sm font-medium text-brand-orange">${formatCurrency(totalPayment)}</td>
-                        <td class="px-2 py-2 text-sm text-gray-900">${formatCurrency(finalBalance)}</td>
-                    </tr>
-                `;
-
-                balance = finalBalance;
-            }
-
-            amortizationTableBody.innerHTML = tableHTML;
-        }
-
-        // --- Event Listeners ---
-        generateBtn.addEventListener('click', calculateLoan);
-
-        // Allow pressing Enter to calculate
-        [netAmountInput, annualRateInput, termMonthsInput, patrimonialPercentageInput, solcaPercentageInput, autoseguroPercentageInput].forEach(input => {
-            input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    calculateLoan();
+            recordButton.addEventListener('click', () => {
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    stopRecording();
+                } else {
+                    startRecording();
                 }
             });
-        });
 
-        // Radio button change handler
-        document.querySelectorAll('input[name="financingType"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                if (resultsSection.style.display !== 'none') {
-                    calculateLoan(); // Recalculate if results are already showing
-                }
+            dropArea.addEventListener('click', () => fileElem.click());
+            fileElem.addEventListener('change', (e) => handleFiles(e.target.files));
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { dropArea.addEventListener(eventName, preventDefaults, false); document.body.addEventListener(eventName, preventDefaults, false); });
+            ['dragenter', 'dragover'].forEach(eventName => dropArea.addEventListener(eventName, () => dropArea.classList.add('highlight'), false));
+            ['dragleave', 'drop'].forEach(eventName => dropArea.addEventListener(eventName, () => dropArea.classList.remove('highlight'), false));
+            dropArea.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files), false);
+
+            resultContainer.addEventListener('click', () => {
+                if (transcriptionResult.textContent) { navigator.clipboard.writeText(transcriptionResult.textContent).then(() => { copyFeedback.classList.add('show'); setTimeout(() => copyFeedback.classList.remove('show'), 2000); }); }
             });
-        });
 
-        // --- Initialize MathJax when loaded ---
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']]
-            },
-            svg: {
-                fontCache: 'global'
+            function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+            function handleFiles(files) {
+                if (files.length === 0) return;
+                const file = files[0];
+                fileInfo.className = '';
+                if (file.size > MAX_FILE_SIZE) {
+                    fileInfo.textContent = `Error: El archivo excede el límite de 25MB.`;
+                    fileInfo.className = 'error';
+                    return;
+                }
+                fileInfo.textContent = `Archivo: ${file.name}`;
+                uploadAndTranscribe(file);
             }
-        };
+
+            async function startRecording() {
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(mediaStream);
+                    mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const audioFile = new File([audioBlob], "grabacion.webm", { type: 'audio/webm' });
+                        audioChunks = [];
+                        uploadAndTranscribe(audioFile);
+                        mediaStream.getTracks().forEach(track => track.stop());
+                    };
+                    audioChunks = [];
+                    mediaRecorder.start();
+                    recordButton.textContent = 'Detener Grabación';
+                    recordButton.classList.add('is-recording');
+                    recordingStatus.textContent = 'Grabando...';
+                    recordingStatus.style.display = 'block';
+                    dropArea.style.pointerEvents = 'none';
+                    dropArea.style.opacity = '0.5';
+                } catch (err) {
+                    recordingStatus.textContent = 'Error al acceder al micrófono.';
+                    console.error("Error de MediaRecorder:", err);
+                }
+            }
+
+            function stopRecording() {
+                mediaRecorder.stop();
+                recordButton.textContent = 'Grabar Audio';
+                recordButton.classList.remove('is-recording');
+                recordingStatus.style.display = 'none';
+                dropArea.style.pointerEvents = 'auto';
+                dropArea.style.opacity = '1';
+            }
+
+            async function uploadAndTranscribe(file) {
+                const webhookUrl = 'https://lpn8n.luispinta.com/webhook/22a5f1a5-8792-4622-bcca-f744f95f5cea';
+                const formData = new FormData();
+                formData.append('file', file);
+                animationContainer.style.display = 'block';
+                resultWrapper.style.display = 'none';
+                recordButton.disabled = true;
+                try {
+                    const response = await fetch(webhookUrl, { method: 'POST', body: formData });
+                    if (!response.ok) throw new Error(`Error del servidor: ${response.statusText}`);
+                    const result = await response.json();
+                    let transcriptionText = '', durationText = '';
+                    const data = Array.isArray(result) ? result[0] : result;
+                    if (data && data.text) {
+                        transcriptionText = data.text;
+                        if (data.usage && typeof data.usage.seconds !== 'undefined') {
+                            durationText = `Duración: ${data.usage.seconds.toFixed(2)} segundos`;
+                        }
+                    } else {
+                        transcriptionText = 'No se pudo extraer la transcripción. Respuesta: ' + JSON.stringify(result, null, 2);
+                    }
+                    transcriptionResult.textContent = transcriptionText;
+                    durationInfo.textContent = durationText;
+                    resultWrapper.style.display = 'block';
+                } catch (error) {
+                    transcriptionResult.textContent = `Error en la transcripción: ${error.message}`;
+                    durationInfo.textContent = '';
+                    resultWrapper.style.display = 'block';
+                } finally {
+                    animationContainer.style.display = 'none';
+                    recordButton.disabled = false;
+                }
+            }
+
+            checkLoginState();
+        });
     </script>
 
 </body>
